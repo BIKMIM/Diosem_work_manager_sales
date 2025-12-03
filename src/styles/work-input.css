@@ -1,0 +1,91 @@
+/* 작업 입력 영역 스타일 */
+
+.work-input {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.work-input-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.work-input h2 {
+  font-size: 1.3rem;
+  margin: 0;
+  color: #333;
+}
+
+.btn-copy-all {
+  background: #667eea;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.btn-copy-all:hover {
+  background: #5568d3;
+}
+
+.work-input textarea {
+  width: 100%;
+  padding: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  font-family: 'Consolas', 'Monaco', monospace;
+  line-height: 1.6;
+  resize: vertical;
+  min-height: 400px;
+}
+
+.work-input textarea:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.btn-analyze {
+  width: 100%;
+  background: #10b981;
+  color: white;
+  border: none;
+  padding: 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 1rem;
+  transition: background 0.2s;
+}
+
+.btn-analyze:hover {
+  background: #059669;
+}
+
+.btn-clear {
+  background: #6b7280;
+  color: white;
+  border: none;
+  padding: 0.8rem 1.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 1rem;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.btn-clear:hover {
+  background: #4b5563;
+}

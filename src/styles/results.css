@@ -1,0 +1,255 @@
+/* 결과 섹션 스타일 */
+
+.results-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.results-section {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.results-section h2 {
+  font-size: 1.3rem;
+  margin-bottom: 1rem;
+  color: #333;
+  border-bottom: 2px solid #667eea;
+}
+
+/* 경고 섹션 공통 */
+.warning-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.warning-item {
+  padding: 1rem;
+  border-radius: 8px;
+  border-left: 4px solid;
+}
+
+.duplicate-warning {
+  background: #fff3cd;
+  border-left-color: #ff9800;
+}
+
+.leave-conflict-warning {
+  background: #ffe5e5;
+  border-left-color: #dc3545;
+}
+
+.warning-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.warning-date {
+  font-weight: 600;
+  color: #333;
+}
+
+.warning-worker {
+  font-weight: 700;
+  color: #dc3545;
+  background: white;
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+}
+
+.leave-badge {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #007bff;
+  background: white;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  border: 1px solid #007bff;
+}
+
+.warning-detail {
+  font-size: 0.95rem;
+  color: #666;
+  margin-bottom: 0.5rem;
+}
+
+.warning-tasks {
+  list-style: none;
+  padding-left: 1rem;
+  margin: 0;
+}
+
+.warning-tasks li {
+  font-size: 0.9rem;
+  color: #555;
+  padding: 0.2rem 0;
+}
+
+.warning-tasks li:before {
+  content: "• ";
+  color: #dc3545;
+  font-weight: bold;
+  margin-right: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+/* 분리 위반 결과 */
+.violation-list ul {
+  list-style: none;
+}
+
+.violation-item {
+  padding: 1rem;
+  margin-bottom: 0.8rem;
+  background: #fef2f2;
+  border-left: 4px solid #ef4444;
+  border-radius: 4px;
+}
+
+.violation-date {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 0.3rem;
+}
+
+.violation-task {
+  color: #666;
+  margin-bottom: 0.3rem;
+}
+
+.violation-pair {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+/* 미배정 결과 */
+.unassigned-day {
+  padding: 1rem;
+  margin-bottom: 0.8rem;
+  background: #fef9c3;
+  border-left: 4px solid #eab308;
+  border-radius: 4px;
+}
+
+.unassigned-day.all-assigned {
+  background: #dcfce7;
+  border-left-color: #10b981;
+}
+
+.unassigned-first-line {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+}
+
+.unassigned-date {
+  font-weight: 600;
+  color: #333;
+}
+
+.unassigned-workers {
+  color: #666;
+}
+
+.leave-info-inline {
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.leave-label {
+  font-weight: 600;
+  color: #007bff;
+  margin-right: 0.3rem;
+}
+
+.actual-unassigned {
+  font-size: 0.95rem;
+  margin-top: 0.3rem;
+}
+
+.unassigned-label {
+  font-weight: 600;
+  color: #eab308;
+  margin-right: 0.5rem;
+}
+
+.unassigned-names {
+  color: #333;
+}
+
+.count {
+  color: #eab308;
+  font-weight: 600;
+  margin-left: 0.5rem;
+}
+
+.all-assigned-message {
+  color: #10b981;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+/* 잔업 결과 */
+.overtime-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.overtime-item {
+  display: flex;
+  align-items: center;
+  padding: 0.8rem 1rem;
+  background: #e6f7ff;
+  border-radius: 8px;
+  border-left: 4px solid #007bff;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.overtime-item:hover {
+  background: #d1f0ff;
+}
+
+.overtime-worker-name {
+  font-weight: 600;
+  color: #333;
+  margin-right: 0.5rem;
+  min-width: 80px;
+}
+
+.overtime-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.overtime-hours {
+  font-weight: 500;
+  color: #333;
+}
+
+.remaining-hours {
+  color: #10b981;
+  font-size: 0.9rem;
+}
+
+.over-limit-badge {
+  color: #ef4444;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.over-limit {
+  color: #ef4444;
+  font-weight: 600;
+}
