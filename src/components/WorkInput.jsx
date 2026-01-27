@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import AlertModal from './AlertModal';
+import { WORKERS } from './worker';
 
 export default function WorkInput({ value, onChange, onAnalyze, onClear }) {
   const [alertMessage, setAlertMessage] = useState('');
