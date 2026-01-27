@@ -13,7 +13,7 @@ export default function UnassignedResults({ unassigned }) {
       <h2>일별 미배정 및 부재 현황</h2>
       <div className="unassigned-list">
         {unassigned.map((day, index) => {
-          // 1. 작업 미배정 인원 (화면 중앙에 크게 표시될 진짜 대기자)
+          // 1. 작업 미배정 인원 (화면 중앙에 표시될 진짜 대기자)
           const actualUnassigned = day.workers.filter(
             w => !day.yearLeave.includes(w) && 
                  !day.halfLeave.includes(w) &&
@@ -30,37 +30,56 @@ export default function UnassignedResults({ unassigned }) {
               key={index}
               className={actualUnassigned.length === 0 ? "unassigned-day all-assigned" : "unassigned-day"}
             >
-              {/* === [헤더 영역] 좌측: 날짜 / 우측: 부재자 정보 === */}
+              {/* === [헤더 영역] 날짜와 부재자 정보를 왼쪽 정렬로 배치 === */}
               <div style={{ 
                 display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'flex-start',
+                justifyContent: 'flex-start', // 왼쪽 정렬
+                alignItems: 'center',         // 수직 중앙 정렬
+                flexWrap: 'wrap',             // 화면 좁으면 줄바꿈
+                gap: '15px',                  // 날짜와 부재자 정보 사이 간격
                 borderBottom: '1px solid #eee',
                 paddingBottom: '8px',
                 marginBottom: '10px'
               }}>
-                {/* 날짜 (좌측) */}
+                {/* 날짜 */}
                 <div className="unassigned-date" style={{ margin: 0, border: 'none', padding: 0 }}>
                   {day.date}
                 </div>
 
-                {/* 부재자 정보 (우측) - 교육, 연차 등 */}
+                {/* 부재자 정보 (날짜 바로 옆에 표시) */}
                 {hasAbsence && (
-                  <div style={{ fontSize: '0.85rem', textAlign: 'right', lineHeight: '1.4' }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    gap: '12px', 
+                    fontSize: '0.9rem', 
+                    flexWrap: 'wrap',
+                    alignItems: 'center'
+                  }}>
                     {day.education && day.education.length > 0 && (
-                      <div style={{ color: '#2563eb' }}>
+                      <span style={{ color: '#2563eb' }}>
                         <span style={{ fontWeight: 'bold' }}>교육/기타:</span> {day.education.join(', ')}
-                      </div>
+                      </span>
                     )}
+                    {/* 구분선 (교육이 있고 연차도 있을 때만 표시) */}
+                    {(day.education?.length > 0 && (day.yearLeave.length > 0 || day.halfLeave.length > 0)) && (
+                      <span style={{ color: '#ccc' }}>|</span>
+                    )}
+
                     {day.yearLeave.length > 0 && (
-                      <div style={{ color: '#e11d48' }}>
+                      <span style={{ color: '#e11d48' }}>
                         <span style={{ fontWeight: 'bold' }}>연차:</span> {day.yearLeave.join(', ')}
-                      </div>
+                      </span>
                     )}
+                    
+                    {/* 구분선 (연차가 있고 반차도 있을 때만 표시) */}
+                    {(day.yearLeave.length > 0 && day.halfLeave.length > 0) && (
+                      <span style={{ color: '#ccc' }}>|</span>
+                    )}
+
                     {day.halfLeave.length > 0 && (
-                      <div style={{ color: '#ea580c' }}>
+                      <span style={{ color: '#ea580c' }}>
                         <span style={{ fontWeight: 'bold' }}>반차:</span> {day.halfLeave.join(', ')}
-                      </div>
+                      </span>
                     )}
                   </div>
                 )}
