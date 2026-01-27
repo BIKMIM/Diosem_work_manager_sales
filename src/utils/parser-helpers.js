@@ -18,53 +18,48 @@ export const removeTitle = (name) => {
   return name.replace(/(프로|기정|차장|TL|부장님|팀장)$/, '').trim();
 };
 
-// 연차/반차 파싱 (기존 HTML 프로그램 로직 참고)
+// 연차/반차/교육 등 모든 부재 파싱 (새로운 로직)
 export const parseLeave = (line) => {
   const yearLeave = [];
   const halfLeave = [];
+  const education = [];
 
-  // 연차/민방위/예비군/휴가 처리 (8시간 차감) - 슬래시 구분 및 다양한 키워드 처리
-  const fullAbsencePattern = /(연차|민방위|예비군|여름휴가|여름\s*휴가|겨울휴가|겨울\s*휴가|휴가)\s*:\s*([^■◆□★<]*?)(?=\s*\/\s*(연차|민방위|예비군|여름휴가|여름\s*휴가|겨울휴가|겨울\s*휴가|휴가|반차|오전반차|오후반차|교육)\s*:|■|◆|□|★|<|$)/g;
+  // "키워드: 이름들" 패턴을 모두 찾기
+  // 슬래시(/)로 구분된 여러 항목 처리
+  const allLeavePattern = /([가-힣]+)\s*:\s*([^/■◆□★<]+)/g;
   let match;
-  let fullAbsenceNames = '';
 
-  while ((match = fullAbsencePattern.exec(line)) !== null) {
-    if (fullAbsenceNames) fullAbsenceNames += ', ';
-    fullAbsenceNames += match[2].trim();
-  }
+  while ((match = allLeavePattern.exec(line)) !== null) {
+    const keyword = match[1].trim();
+    const namesStr = match[2].trim();
 
-  if (fullAbsenceNames) {
-    const cleanedNames = fullAbsenceNames
-      .replace(/\s*\/\s*(연차|민방위|예비군|반차|오전반차|오후반차|교육|여름휴가|겨울휴가|휴가):\s*/g, ', ')
-      .replace(/^[,\s]+|[,\s]+$/g, '')
-      .split(/,\s*|\s*\/\s*/)
+    // 이름 추출 (쉼표, 공백, 슬래시로 구분)
+    const names = namesStr
+      .split(/[,\s/]+/)
       .map(n => removeTitle(n.replace(/\([^)]*\)/g, '').trim()))
-      .filter(n => n && !n.match(/^(연차|민방위|예비군|반차|오전반차|오후반차|교육|여름휴가|겨울휴가|휴가)$/) && WORKERS.includes(n));
+      .filter(n => n && n.length >= 2 && WORKERS.includes(n));
 
-    yearLeave.push(...cleanedNames);
+    if (names.length === 0) continue;
+
+    // 키워드에 따라 분류
+    if (keyword.match(/^(연차|민방위|예비군|휴가|여름휴가|겨울휴가)$/)) {
+      // 8시간 차감
+      yearLeave.push(...names);
+    } else if (keyword.match(/^(반차|오전반차|오후반차)$/)) {
+      // 4시간 차감
+      halfLeave.push(...names);
+    } else {
+      // 그 외 모든 것 (교육, 출장, 병가 등) - 근무 간주, 차감 없음
+      education.push(...names);
+    }
   }
 
-  // 반차 처리 (오전반차, 오후반차 포함)
-  const halfAbsencePattern = /(반차|오전반차|오후반차)\s*:\s*([^■◆□★<]*?)(?=\s*\/\s*(연차|민방위|예비군|여름휴가|여름\s*휴가|겨울휴가|겨울\s*휴가|휴가|반차|오전반차|오후반차|교육)\s*:|■|◆|□|★|<|$)/g;
-  let halfAbsenceNames = '';
-
-  while ((match = halfAbsencePattern.exec(line)) !== null) {
-    if (halfAbsenceNames) halfAbsenceNames += ', ';
-    halfAbsenceNames += match[2].trim();
-  }
-
-  if (halfAbsenceNames) {
-    const cleanedNames = halfAbsenceNames
-      .replace(/\s*\/\s*(연차|민방위|예비군|반차|오전반차|오후반차|교육|여름휴가|겨울휴가|휴가):\s*/g, ', ')
-      .replace(/^[,\s]+|[,\s]+$/g, '')
-      .split(/,\s*|\s*\/\s*/)
-      .map(n => removeTitle(n.replace(/\([^)]*\)/g, '').trim()))
-      .filter(n => n && !n.match(/^(연차|민방위|예비군|반차|오전반차|오후반차|교육|여름휴가|겨울휴가|휴가)$/) && WORKERS.includes(n));
-
-    halfLeave.push(...cleanedNames);
-  }
-
-  return { yearLeave, halfLeave };
+  // 중복 제거
+  return {
+    yearLeave: [...new Set(yearLeave)],
+    halfLeave: [...new Set(halfLeave)],
+    education: [...new Set(education)]
+  };
 };
 
 // 작업 라인 파싱
