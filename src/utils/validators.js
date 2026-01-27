@@ -44,6 +44,7 @@ export const checkUnassigned = (dailyData) => {
       workers: unassigned,
       yearLeave: day.yearLeave,
       halfLeave: day.halfLeave,
+      education: day.education, 
       allAssigned: unassigned.length === 0
     });
   }
