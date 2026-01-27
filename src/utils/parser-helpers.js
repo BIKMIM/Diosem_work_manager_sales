@@ -26,7 +26,8 @@ export const parseLeave = (line) => {
 
   // "키워드: 이름들" 패턴을 모두 찾기
   // 슬래시(/)로 구분된 여러 항목 처리
-  const allLeavePattern = /([가-힣]+)\s*:\s*([^/■◆□★<]+)/g;
+  // ⚠️ 수정됨: 정규식 내부 슬래시 앞에 역슬래시(\) 추가 ([^/...] -> [^\/...])
+  const allLeavePattern = /([가-힣]+)\s*:\s*([^\/■◆□★<]+)/g;
   let match;
 
   while ((match = allLeavePattern.exec(line)) !== null) {
@@ -34,8 +35,9 @@ export const parseLeave = (line) => {
     const namesStr = match[2].trim();
 
     // 이름 추출 (쉼표, 공백, 슬래시로 구분)
+    // ⚠️ 수정됨: 정규식 내부 슬래시 앞에 역슬래시(\) 추가 (/[,\s/]+/ -> /[,\s\/]+/)
     const names = namesStr
-      .split(/[,\s/]+/)
+      .split(/[,\s\/]+/)
       .map(n => removeTitle(n.replace(/\([^)]*\)/g, '').trim()))
       .filter(n => n && n.length >= 2 && WORKERS.includes(n));
 

@@ -13,9 +13,12 @@ export default function UnassignedResults({ unassigned }) {
       <h2>미배정 인원</h2>
       <div className="unassigned-list">
         {unassigned.map((day, index) => {
-          // 작업 미배정 인원 (휴가자 제외)
+          // 작업 미배정 인원 계산
+          // (연차, 반차, 그리고 교육/출장자도 제외)
           const actualUnassigned = day.workers.filter(
-            w => !day.yearLeave.includes(w) && !day.halfLeave.includes(w)
+            w => !day.yearLeave.includes(w) && 
+                 !day.halfLeave.includes(w) &&
+                 (!day.education || !day.education.includes(w)) 
           );
 
           return (
