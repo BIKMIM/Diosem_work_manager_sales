@@ -10,37 +10,38 @@ export const parseWorkData = (text) => {
     const trimmed = lines[i].trim();
     if (!trimmed) continue;
 
-    // 날짜 라인 (연차 정보가 같은 줄에 있을 수 있음)
+    // 날짜 라인 (부재 정보가 같은 줄에 있을 수 있음)
     const dateInfo = parseDate(trimmed);
     if (dateInfo) {
       currentDay = {
         ...dateInfo,
         yearLeave: [],
         halfLeave: [],
+        education: [], // 교육, 출장 등 (근무 간주)
         tasks: []
       };
       dailyData.push(currentDay);
 
-      // 날짜 라인과 같은 줄에 연차 정보가 있는지 확인 (더 많은 키워드 지원)
-      const leaveKeywords = ['연차:', '반차:', '예비군:', '휴가:', '민방위:',
-                            '여름휴가:', '겨울휴가:', '오전반차:', '오후반차:', '교육:'];
-      if (leaveKeywords.some(keyword => trimmed.includes(keyword))) {
-        const { yearLeave, halfLeave } = parseLeave(trimmed);
+      // 날짜 라인과 같은 줄에 부재 정보가 있는지 확인
+      // 콜론(:)이 있으면 부재 정보가 있다고 판단
+      if (trimmed.includes(':')) {
+        const { yearLeave, halfLeave, education } = parseLeave(trimmed);
         currentDay.yearLeave.push(...yearLeave);
         currentDay.halfLeave.push(...halfLeave);
+        currentDay.education.push(...education);
       }
       continue;
     }
 
     if (!currentDay) continue;
 
-    // 연차/반차 라인 (별도 라인으로 나오는 경우)
-    const leaveKeywords = ['연차:', '반차:', '예비군:', '휴가:', '민방위:',
-                          '여름휴가:', '겨울휴가:', '오전반차:', '오후반차:', '교육:'];
-    if (leaveKeywords.some(keyword => trimmed.includes(keyword))) {
-      const { yearLeave, halfLeave } = parseLeave(trimmed);
+    // 부재 라인 (별도 라인으로 나오는 경우)
+    // 콜론(:)이 있고 작업 기호로 시작하지 않으면 부재 라인으로 판단
+    if (trimmed.includes(':') && !trimmed.match(/^[■□▪▫●○◆★☆]/)) {
+      const { yearLeave, halfLeave, education } = parseLeave(trimmed);
       currentDay.yearLeave.push(...yearLeave);
       currentDay.halfLeave.push(...halfLeave);
+      currentDay.education.push(...education);
       continue;
     }
 
