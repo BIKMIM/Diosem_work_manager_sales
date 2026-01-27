@@ -49,7 +49,8 @@ function App() {
   // 초기 로드
   useEffect(() => {
     const savedPairs = loadSeparationPairs();
-    setSeparationPairs(savedPairs || DEFAULT_SEPARATION_PAIRS);
+    // 저장된 값이 없거나 빈 배열인 경우 기본값 사용
+    setSeparationPairs(savedPairs && savedPairs.length > 0 ? savedPairs : DEFAULT_SEPARATION_PAIRS);
 
     const savedInput = loadWorkInput();
     setWorkInput(savedInput);

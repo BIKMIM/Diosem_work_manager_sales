@@ -44,7 +44,7 @@ export default function WorkInput({ value, onChange, onAnalyze, onClear }) {
       />
       <div style={{ display: 'flex', gap: '0.5rem' }}>
         <button onClick={onAnalyze} className="btn-analyze" style={{ flex: 1 }}>
-          작업 미배정 인원 확인 (기술팀 총 22명)
+          작업 미배정 인원 확인 (기술팀 총 {WORKERS.length}명)
         </button>
         <button onClick={onClear} className="btn-clear">
           초기화
