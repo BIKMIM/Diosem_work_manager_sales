@@ -62,7 +62,7 @@ export const calculatePersonalOvertime = (dailyData) => {
             hours: -4
           });
         } else {
-          // 정상 근무: 8시간 기본 근무시간
+          // 정상 근무 (또는 교육): 8시간 기본 근무시간
           overtimeByPerson[worker].baseWorkHours += 8;
         }
       }
@@ -72,24 +72,38 @@ export const calculatePersonalOvertime = (dailyData) => {
         let dailyOvertime = 0;
 
         if (isWeekend) {
-          // 주말: 5시간 초과분이 잔업
-          dailyOvertime = Math.max(0, workedHours - 5);
+          // ⭐ [수정됨] 주말: 근무 시간 전체를 잔업(특근)으로 인정
+          // 기존 코드: Math.max(0, workedHours - 5) -> 5시간 근무 시 0이 되는 문제 해결
+          dailyOvertime = workedHours;
         } else {
-          // 평일: 종료 시간이 18시 이후인 경우만 잔업 계산
-          // dailyTaskDetails에서 각 작업의 종료 시간을 확인
+          // 평일 잔업 계산
           const workerTasks = dailyTaskDetails[worker] || [];
+          
           workerTasks.forEach(task => {
+            let taskOvertime = 0;
+
+            // 1. 종료 시간 기준 체크 ("10시-20시")
             if (task.timeInfo) {
-              // "10시-20시 (10시간 기준)" 형태에서 종료 시간 추출
               const endTimeMatch = task.timeInfo.match(/(\d{1,2})시-(\d{1,2})시/);
               if (endTimeMatch) {
                 const endTime = parseInt(endTimeMatch[2]);
                 if (endTime > 18) {
-                  // 18시 이후까지 작업한 경우, 18시 이후 시간만 잔업
-                  dailyOvertime += (endTime - 18);
+                  // 18시 이후 시간은 잔업
+                  taskOvertime = (endTime - 18);
+                }
+              } else {
+                // 2. 시간대 없이 "(10시간 기준)" 등으로만 적힌 경우 체크 (보강됨)
+                const durationMatch = task.timeInfo.match(/(\d+(?:\.\d+)?)시간\s*기준/);
+                if (durationMatch) {
+                  const duration = parseFloat(durationMatch[1]);
+                  // 8시간을 초과하는 부분은 잔업으로 간주
+                  if (duration > 8) {
+                    taskOvertime = duration - 8;
+                  }
                 }
               }
             }
+            dailyOvertime += taskOvertime;
           });
         }
 
