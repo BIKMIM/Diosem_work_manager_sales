@@ -1,4 +1,5 @@
 import { parseDate, parseLeave, parseWorkLine } from './parser-helpers';
+import { getHolidayName } from './holidays';
 
 // 전체 텍스트 파싱
 export const parseWorkData = (text) => {
@@ -13,10 +14,14 @@ export const parseWorkData = (text) => {
     // 날짜 라인 (부재 정보가 같은 줄에 있을 수 있음)
     const dateInfo = parseDate(trimmed);
     if (dateInfo) {
+      const holidayName = getHolidayName(dateInfo.month, dateInfo.day, dateInfo.dayOfWeek);
       currentDay = {
         ...dateInfo,
+        isHoliday: holidayName !== null,
+        holidayName: holidayName || null,
         yearLeave: [],
         halfLeave: [],
+        halfHalfLeave: [],
         education: [], // 교육, 출장 등 (근무 간주)
         tasks: []
       };
@@ -25,9 +30,10 @@ export const parseWorkData = (text) => {
       // 날짜 라인과 같은 줄에 부재 정보가 있는지 확인
       // 콜론(:)이 있으면 부재 정보가 있다고 판단
       if (trimmed.includes(':')) {
-        const { yearLeave, halfLeave, education } = parseLeave(trimmed);
+        const { yearLeave, halfLeave, halfHalfLeave, education } = parseLeave(trimmed);
         currentDay.yearLeave.push(...yearLeave);
         currentDay.halfLeave.push(...halfLeave);
+        currentDay.halfHalfLeave.push(...halfHalfLeave);
         currentDay.education.push(...education);
       }
       continue;
@@ -38,9 +44,10 @@ export const parseWorkData = (text) => {
     // 부재 라인 (별도 라인으로 나오는 경우)
     // 콜론(:)이 있고 작업 기호로 시작하지 않으면 부재 라인으로 판단
     if (trimmed.includes(':') && !trimmed.match(/^[■□▪▫●○◆★☆]/)) {
-      const { yearLeave, halfLeave, education } = parseLeave(trimmed);
+      const { yearLeave, halfLeave, halfHalfLeave, education } = parseLeave(trimmed);
       currentDay.yearLeave.push(...yearLeave);
       currentDay.halfLeave.push(...halfLeave);
+      currentDay.halfHalfLeave.push(...halfHalfLeave);
       currentDay.education.push(...education);
       continue;
     }

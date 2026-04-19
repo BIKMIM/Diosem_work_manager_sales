@@ -155,7 +155,7 @@ function App() {
     return (
       <div className="app">
         <header className="app-header">
-          <h1>Diosem 작업 배정 현황 (영업팀)</h1>
+          <h1>Diosem 작업 배정 현황 (영업팀)<span className="app-version">v1.1.0 · 2026-04-20</span></h1>
         </header>
         <main className="app-main">
           <Settings

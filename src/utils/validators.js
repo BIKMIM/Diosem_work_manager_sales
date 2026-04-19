@@ -44,7 +44,10 @@ export const checkUnassigned = (dailyData) => {
       workers: unassigned,
       yearLeave: day.yearLeave,
       halfLeave: day.halfLeave,
-      education: day.education, 
+      halfHalfLeave: day.halfHalfLeave || [],
+      education: day.education,
+      isHoliday: day.isHoliday || false,
+      holidayName: day.holidayName || null,
       allAssigned: unassigned.length === 0
     });
   }
@@ -149,7 +152,7 @@ export const checkLeaveConflicts = (dailyData) => {
     const dateStr = `${day.month}월 ${day.day}일 ${day.dayOfWeek}`;
 
     // 연차/민방위/예비군/휴가 등으로 빠진 사람들
-    const onLeave = new Set([...day.yearLeave, ...day.halfLeave]);
+    const onLeave = new Set([...day.yearLeave, ...day.halfLeave, ...(day.halfHalfLeave || [])]);
 
     // 작업에 배정된 사람들
     const assignedWorkers = new Set();
@@ -173,7 +176,9 @@ export const checkLeaveConflicts = (dailyData) => {
       if (assignedWorkers.has(worker)) {
         const leaveType = day.yearLeave.includes(worker)
           ? '연차/민방위/예비군/휴가'
-          : '반차/오전반차/오후반차';
+          : day.halfLeave.includes(worker)
+          ? '반차/오전반차/오후반차'
+          : '반반차(조기퇴근)';
 
         conflicts.push({
           date: dateStr,

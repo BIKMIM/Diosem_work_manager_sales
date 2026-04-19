@@ -15,14 +15,16 @@ export default function UnassignedResults({ unassigned }) {
         {unassigned.map((day, index) => {
           // 1. 작업 미배정 인원 (화면 중앙에 표시될 진짜 대기자)
           const actualUnassigned = day.workers.filter(
-            w => !day.yearLeave.includes(w) && 
+            w => !day.yearLeave.includes(w) &&
                  !day.halfLeave.includes(w) &&
+                 !(day.halfHalfLeave || []).includes(w) &&
                  (!day.education || !day.education.includes(w))
           );
 
           // 2. 부재자 데이터 존재 여부 확인
-          const hasAbsence = day.yearLeave.length > 0 || 
-                             day.halfLeave.length > 0 || 
+          const hasAbsence = day.yearLeave.length > 0 ||
+                             day.halfLeave.length > 0 ||
+                             (day.halfHalfLeave && day.halfHalfLeave.length > 0) ||
                              (day.education && day.education.length > 0);
 
           return (
@@ -31,12 +33,12 @@ export default function UnassignedResults({ unassigned }) {
               className={actualUnassigned.length === 0 ? "unassigned-day all-assigned" : "unassigned-day"}
             >
               {/* === [헤더 영역] 날짜와 부재자 정보를 왼쪽 정렬로 배치 === */}
-              <div style={{ 
-                display: 'flex', 
-                justifyContent: 'flex-start', // 왼쪽 정렬
-                alignItems: 'center',         // 수직 중앙 정렬
-                flexWrap: 'wrap',             // 화면 좁으면 줄바꿈
-                gap: '15px',                  // 날짜와 부재자 정보 사이 간격
+              <div style={{
+                display: 'flex',
+                justifyContent: 'flex-start',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: '15px',
                 borderBottom: '1px solid #eee',
                 paddingBottom: '8px',
                 marginBottom: '10px'
@@ -46,12 +48,27 @@ export default function UnassignedResults({ unassigned }) {
                   {day.date}
                 </div>
 
+                {/* 공휴일 배지 */}
+                {day.isHoliday && (
+                  <span style={{
+                    background: '#fee2e2',
+                    color: '#dc2626',
+                    fontWeight: 'bold',
+                    fontSize: '0.82rem',
+                    padding: '2px 8px',
+                    borderRadius: '4px',
+                    border: '1px solid #fca5a5'
+                  }}>
+                    공휴일: {day.holidayName}
+                  </span>
+                )}
+
                 {/* 부재자 정보 (날짜 바로 옆에 표시) */}
                 {hasAbsence && (
-                  <div style={{ 
-                    display: 'flex', 
-                    gap: '12px', 
-                    fontSize: '0.9rem', 
+                  <div style={{
+                    display: 'flex',
+                    gap: '12px',
+                    fontSize: '0.9rem',
                     flexWrap: 'wrap',
                     alignItems: 'center'
                   }}>
@@ -60,8 +77,7 @@ export default function UnassignedResults({ unassigned }) {
                         <span style={{ fontWeight: 'bold' }}>교육/기타:</span> {day.education.join(', ')}
                       </span>
                     )}
-                    {/* 구분선 (교육이 있고 연차도 있을 때만 표시) */}
-                    {(day.education?.length > 0 && (day.yearLeave.length > 0 || day.halfLeave.length > 0)) && (
+                    {(day.education?.length > 0 && (day.yearLeave.length > 0 || day.halfLeave.length > 0 || day.halfHalfLeave?.length > 0)) && (
                       <span style={{ color: '#ccc' }}>|</span>
                     )}
 
@@ -70,9 +86,8 @@ export default function UnassignedResults({ unassigned }) {
                         <span style={{ fontWeight: 'bold' }}>연차:</span> {day.yearLeave.join(', ')}
                       </span>
                     )}
-                    
-                    {/* 구분선 (연차가 있고 반차도 있을 때만 표시) */}
-                    {(day.yearLeave.length > 0 && day.halfLeave.length > 0) && (
+
+                    {(day.yearLeave.length > 0 && (day.halfLeave.length > 0 || day.halfHalfLeave?.length > 0)) && (
                       <span style={{ color: '#ccc' }}>|</span>
                     )}
 
@@ -81,12 +96,26 @@ export default function UnassignedResults({ unassigned }) {
                         <span style={{ fontWeight: 'bold' }}>반차:</span> {day.halfLeave.join(', ')}
                       </span>
                     )}
+
+                    {(day.halfLeave.length > 0 && day.halfHalfLeave?.length > 0) && (
+                      <span style={{ color: '#ccc' }}>|</span>
+                    )}
+
+                    {day.halfHalfLeave && day.halfHalfLeave.length > 0 && (
+                      <span style={{ color: '#d97706' }}>
+                        <span style={{ fontWeight: 'bold' }}>반반차:</span> {day.halfHalfLeave.join(', ')}
+                      </span>
+                    )}
                   </div>
                 )}
               </div>
 
-              {/* === [몸통 영역] 진짜 미배정 대기 인원만 표시 === */}
-              {actualUnassigned.length === 0 ? (
+              {/* === [몸통 영역] 공휴일이면 전 직원 휴무 표시, 아니면 미배정 표시 === */}
+              {day.isHoliday ? (
+                <div className="all-assigned-message">
+                  법정 공휴일 — 전 직원 휴무
+                </div>
+              ) : actualUnassigned.length === 0 ? (
                 <div className="all-assigned-message">
                   ✓ 작업 가능 인원 전원 배정 완료
                 </div>

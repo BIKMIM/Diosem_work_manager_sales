@@ -34,9 +34,12 @@ export default function OvertimeModal({ worker, data, onClose }) {
 
   // 날짜순 정렬
   allEntries.sort((a, b) => {
-    const dateA = new Date(2024, parseInt(a.date.split('월')[0]) - 1, parseInt(a.date.split('월')[1].split('일')[0]));
-    const dateB = new Date(2024, parseInt(b.date.split('월')[0]) - 1, parseInt(b.date.split('월')[1].split('일')[0]));
-    return dateA - dateB;
+    const toSortKey = (date) => {
+      const month = parseInt(date.split('월')[0]);
+      const day = parseInt(date.split('월')[1].split('일')[0]);
+      return month * 100 + day;
+    };
+    return toSortKey(a.date) - toSortKey(b.date);
   });
 
   return (

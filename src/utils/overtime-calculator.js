@@ -18,6 +18,8 @@ export const calculatePersonalOvertime = (dailyData) => {
   for (const day of dailyData) {
     const dateStr = `${day.month}월 ${day.day}일 ${day.dayOfWeek}`;
     const isWeekend = day.dayOfWeek.includes('토요일') || day.dayOfWeek.includes('일요일');
+    // 법정 공휴일 여부 (주말이 아닌 평일 공휴일만 기본시간 차감에 영향)
+    const isHoliday = day.isHoliday || false;
 
     // 각 직원의 일일 총 근무시간 계산 및 작업 내역 수집
     const dailyWorkHours = {};
@@ -42,10 +44,11 @@ export const calculatePersonalOvertime = (dailyData) => {
     WORKERS.forEach(worker => {
       const isFullLeave = day.yearLeave.includes(worker);
       const isHalfLeave = day.halfLeave.includes(worker);
+      const isHalfHalfLeave = (day.halfHalfLeave || []).includes(worker);
       const workedHours = dailyWorkHours[worker] || 0;
 
-      // 평일만 기본 근무시간 계산
-      if (!isWeekend) {
+      // 평일만 기본 근무시간 계산 (공휴일은 전 직원 기본시간 0 — 차감 기록 없이 단순 스킵)
+      if (!isWeekend && !isHoliday) {
         if (isFullLeave) {
           // 연차: 기본 근무시간 추가 안 함, 차감 기록
           overtimeByPerson[worker].leaveDeductions.push({
@@ -60,6 +63,14 @@ export const calculatePersonalOvertime = (dailyData) => {
             date: dateStr,
             type: '반차/오전반차/오후반차',
             hours: -4
+          });
+        } else if (isHalfHalfLeave) {
+          // 반반차: 6시간만 기본 근무시간으로 추가, 차감 기록
+          overtimeByPerson[worker].baseWorkHours += 6;
+          overtimeByPerson[worker].leaveDeductions.push({
+            date: dateStr,
+            type: '반반차(조기퇴근)',
+            hours: -2
           });
         } else {
           // 정상 근무 (또는 교육): 8시간 기본 근무시간

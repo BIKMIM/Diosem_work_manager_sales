@@ -22,10 +22,17 @@ export const removeTitle = (name) => {
 export const parseLeave = (line) => {
   const yearLeave = [];
   const halfLeave = [];
+  const halfHalfLeave = []; // 반반차 (2시간 조기퇴근)
   const education = [];
 
   // "키워드: 이름들" 패턴을 모두 찾기
   // 슬래시(/)로 구분된 여러 항목 처리
+  // =========================================================
+  // 부재 키워드 설정
+  // 반반차 키워드 변경 시 아래 상수만 수정하면 됩니다.
+  // =========================================================
+  const HALF_HALF_LEAVE_KEYWORD = '반반차'; // 2시간 조기퇴근
+
   // ⚠️ 수정됨: 정규식 내부 슬래시 앞에 역슬래시(\) 추가 ([^/...] -> [^\/...])
   const allLeavePattern = /([가-힣]+)\s*:\s*([^\/■◆□★<]+)/g;
   let match;
@@ -50,6 +57,9 @@ export const parseLeave = (line) => {
     } else if (keyword.match(/^(반차|오전반차|오후반차)$/)) {
       // 4시간 차감
       halfLeave.push(...names);
+    } else if (keyword === HALF_HALF_LEAVE_KEYWORD) {
+      // 2시간 차감 (반반차 - 조기퇴근)
+      halfHalfLeave.push(...names);
     } else {
       // 그 외 모든 것 (교육, 출장, 병가 등) - 근무 간주, 차감 없음
       education.push(...names);
@@ -60,6 +70,7 @@ export const parseLeave = (line) => {
   return {
     yearLeave: [...new Set(yearLeave)],
     halfLeave: [...new Set(halfLeave)],
+    halfHalfLeave: [...new Set(halfHalfLeave)],
     education: [...new Set(education)]
   };
 };
