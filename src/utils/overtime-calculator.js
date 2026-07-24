@@ -1,4 +1,4 @@
-import { WORKERS } from '../data/workers';
+import { WORKERS } from '../data/workers.js';
 
 // 개인별 잔업 계산
 export const calculatePersonalOvertime = (dailyData) => {
@@ -35,7 +35,9 @@ export const calculatePersonalOvertime = (dailyData) => {
         dailyTaskDetails[worker].push({
           taskName: task.taskName,
           hours: task.workHours,
-          timeInfo: task.timeInfo
+          timeInfo: task.timeInfo,
+          startTime: task.startTime,
+          endTime: task.endTime
         });
       }
     }
@@ -93,11 +95,25 @@ export const calculatePersonalOvertime = (dailyData) => {
           workerTasks.forEach(task => {
             let taskOvertime = 0;
 
-            // 1. 종료 시간 기준 체크 ("10시-20시")
-            if (task.timeInfo) {
+            const hasParsedRange = task.startTime !== null
+              && task.startTime !== undefined
+              && task.startTime !== ''
+              && task.endTime !== null
+              && task.endTime !== undefined
+              && task.endTime !== ''
+              && Number.isFinite(Number(task.startTime))
+              && Number.isFinite(Number(task.endTime));
+
+            // 1. 파싱된 실제 시간 범위에서 18시 이후 근무분 계산
+            if (hasParsedRange) {
+              const startTime = Number(task.startTime);
+              const endTime = Number(task.endTime);
+              taskOvertime = Math.max(0, endTime - Math.max(startTime, 18));
+            } else if (task.timeInfo) {
+              // 이전 형식의 데이터가 전달되는 경우를 위한 호환 처리
               const endTimeMatch = task.timeInfo.match(/(\d{1,2})시-(\d{1,2})시/);
               if (endTimeMatch) {
-                const endTime = parseInt(endTimeMatch[2]);
+                const endTime = parseInt(endTimeMatch[2], 10);
                 if (endTime > 18) {
                   // 18시 이후 시간은 잔업
                   taskOvertime = (endTime - 18);

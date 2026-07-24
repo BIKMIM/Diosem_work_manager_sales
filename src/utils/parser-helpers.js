@@ -1,4 +1,19 @@
-import { WORKERS } from '../data/workers';
+import { WORKERS } from '../data/workers.js';
+
+const toDecimalHour = (hour, minute = 0) => (
+  parseInt(hour, 10) + (parseInt(minute || 0, 10) / 60)
+);
+
+const formatClockTime = (decimalHour) => {
+  const totalMinutes = Math.round(decimalHour * 60);
+  const dayOffset = Math.floor(totalMinutes / (24 * 60));
+  const minutesOfDay = ((totalMinutes % (24 * 60)) + (24 * 60)) % (24 * 60);
+  const hour = Math.floor(minutesOfDay / 60);
+  const minute = minutesOfDay % 60;
+  const dayPrefix = dayOffset > 0 ? '익일 ' : '';
+
+  return `${dayPrefix}${hour}시${minute > 0 ? `${minute}분` : ''}`;
+};
 
 // 날짜 파싱 (예: "<6월 9일 월요일>")
 export const parseDate = (line) => {
@@ -33,8 +48,8 @@ export const parseLeave = (line) => {
   // =========================================================
   const HALF_HALF_LEAVE_KEYWORD = '반반차'; // 2시간 조기퇴근
 
-  // ⚠️ 수정됨: 정규식 내부 슬래시 앞에 역슬래시(\) 추가 ([^/...] -> [^\/...])
-  const allLeavePattern = /([가-힣]+)\s*:\s*([^\/■◆□★<]+)/g;
+  // 작업 기호나 다음 구분자를 만나기 전까지 이름 영역으로 처리
+  const allLeavePattern = /([가-힣]+)\s*:\s*([^/■◆□★<]+)/g;
   let match;
 
   while ((match = allLeavePattern.exec(line)) !== null) {
@@ -42,9 +57,9 @@ export const parseLeave = (line) => {
     const namesStr = match[2].trim();
 
     // 이름 추출 (쉼표, 공백, 슬래시로 구분)
-    // ⚠️ 수정됨: 정규식 내부 슬래시 앞에 역슬래시(\) 추가 (/[,\s/]+/ -> /[,\s\/]+/)
+    // 쉼표, 공백, 슬래시를 이름 구분자로 처리
     const names = namesStr
-      .split(/[,\s\/]+/)
+      .split(/[,\s/]+/)
       .map(n => removeTitle(n.replace(/\([^)]*\)/g, '').trim()))
       .filter(n => n && n.length >= 2 && WORKERS.includes(n));
 
@@ -116,35 +131,61 @@ export const parseWorkLine = (line) => {
 
   // 시간 정보 추출
   let workHours = 0;
-  let startTime = '';
-  let endTime = '';
+  let startTime = null;
+  let endTime = null;
   let timeInfo = '';
+  let timePrefixLength = 0;
+  const workContent = beforeSlash.replace(/^[■□▪▫●○◆★☆]\s*/, '');
 
-  // "10시-15시(5시간 기준)" 형태
-  const timeRangeMatch = beforeSlash.match(/(\d{1,2})시\s*-\s*(\d{1,2})시\s*\((\d+(?:\.\d+)?)\s*시간/);
+  // "10시-15시(5시간 기준)", "10시30분-15시30분" 형태
+  const timeRangeMatch = workContent.match(
+    /^(\d{1,2})시(?:\s*(\d{1,2})분)?\s*-\s*(\d{1,2})시(?:\s*(\d{1,2})분)?(?:\s*\((\d+(?:\.\d+)?)\s*시간[^)]*\))?/
+  );
+
   if (timeRangeMatch) {
-    startTime = timeRangeMatch[1];
-    endTime = timeRangeMatch[2];
-    workHours = parseFloat(timeRangeMatch[3]);
-    timeInfo = `${startTime}시-${endTime}시 (${workHours}시간 기준)`;
+    startTime = toDecimalHour(timeRangeMatch[1], timeRangeMatch[2]);
+    endTime = toDecimalHour(timeRangeMatch[3], timeRangeMatch[4]);
+
+    // 종료 시각이 시작 시각보다 이르면 자정을 넘긴 작업으로 처리
+    if (endTime < startTime) {
+      endTime += 24;
+    }
+
+    workHours = timeRangeMatch[5]
+      ? parseFloat(timeRangeMatch[5])
+      : endTime - startTime;
+    timeInfo = `${formatClockTime(startTime)}-${formatClockTime(endTime)} (${workHours}시간 기준)`;
+    timePrefixLength = timeRangeMatch[0].length;
   } else {
-    // "(X시간 기준)" 형태만 있는 경우
-    const hourMatch = beforeSlash.match(/\((\d+(?:\.\d+)?)\s*시간\s*기준\)/);
-    if (hourMatch) {
-      workHours = parseFloat(hourMatch[1]);
-      timeInfo = `${workHours}시간 기준`;
+    // "10시(5시간)", "11시30분(4시간)", "10시(6시간이상 예상)" 형태
+    const startDurationMatch = workContent.match(
+      /^(\d{1,2})시(?:\s*(\d{1,2})분)?(?:\s*\((\d+(?:\.\d+)?)\s*시간[^)]*\))?/
+    );
+
+    if (startDurationMatch) {
+      startTime = toDecimalHour(startDurationMatch[1], startDurationMatch[2]);
+      workHours = startDurationMatch[3] ? parseFloat(startDurationMatch[3]) : 8;
+      endTime = startTime + workHours;
+      timeInfo = `${formatClockTime(startTime)}-${formatClockTime(endTime)} (${workHours}시간 기준)`;
+      timePrefixLength = startDurationMatch[0].length;
     } else {
-      // 시간 정보가 없으면 기본 8시간
-      workHours = 8;
-      timeInfo = '8시간 기준';
+      // "(X시간)", "(X시간 기준)" 형태만 있는 경우
+      const hourMatch = workContent.match(/\((\d+(?:\.\d+)?)\s*시간[^)]*\)/);
+      if (hourMatch) {
+        workHours = parseFloat(hourMatch[1]);
+        timeInfo = `${workHours}시간 기준`;
+      } else {
+        // 시간 정보가 없으면 기본 8시간
+        workHours = 8;
+        timeInfo = '8시간 기준';
+      }
     }
   }
 
-  // 작업명 추출 (앞의 기호와 시간 정보 제거)
-  let taskName = beforeSlash
-    .replace(/^[■□▪▫●○◆★☆]\s*/, '') // 앞의 기호 제거
-    .replace(/\d{1,2}시\s*-\s*\d{1,2}시\s*\([^)]+\)/, '') // 시간 범위 제거
-    .replace(/\([^)]*시간[^)]*\)/, '') // 시간 정보 제거
+  // 작업명 추출 (앞의 기호와 시작 시간 정보 제거)
+  let taskName = workContent
+    .slice(timePrefixLength)
+    .replace(/\([^)]*시간[^)]*\)/, '')
     .trim();
 
   return {

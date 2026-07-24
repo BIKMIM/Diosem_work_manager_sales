@@ -1,5 +1,5 @@
-import { parseDate, parseLeave, parseWorkLine } from './parser-helpers';
-import { getHolidayName } from './holidays';
+import { parseDate, parseLeave, parseWorkLine } from './parser-helpers.js';
+import { getHolidayName } from './holidays.js';
 
 // 전체 텍스트 파싱
 export const parseWorkData = (text) => {

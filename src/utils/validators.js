@@ -1,4 +1,4 @@
-import { WORKERS } from '../data/workers';
+import { WORKERS } from '../data/workers.js';
 
 // 분리 위반 검사
 export const checkSeparationViolations = (dailyData, separationPairs) => {
@@ -71,7 +71,9 @@ export const checkDuplicateAssignments = (dailyData) => {
         }
         workerTaskCount[worker].push({
           taskName: task.taskName,
-          timeInfo: task.timeInfo
+          timeInfo: task.timeInfo,
+          startTime: task.startTime,
+          endTime: task.endTime
         });
       }
     }
@@ -81,12 +83,31 @@ export const checkDuplicateAssignments = (dailyData) => {
       if (tasks.length > 1) {
         // 각 작업의 시간대 파싱
         const timeRanges = tasks.map(task => {
+          const hasParsedRange = task.startTime !== null
+            && task.startTime !== undefined
+            && task.startTime !== ''
+            && task.endTime !== null
+            && task.endTime !== undefined
+            && task.endTime !== ''
+            && Number.isFinite(Number(task.startTime))
+            && Number.isFinite(Number(task.endTime));
+
+          if (hasParsedRange) {
+            return {
+              start: Number(task.startTime),
+              end: Number(task.endTime),
+              taskName: task.taskName,
+              timeInfo: task.timeInfo
+            };
+          }
+
+          // 이전 형식의 데이터가 전달되는 경우를 위한 호환 처리
           if (task.timeInfo) {
             const timeMatch = task.timeInfo.match(/(\d{1,2})시-(\d{1,2})시/);
             if (timeMatch) {
               return {
-                start: parseInt(timeMatch[1]),
-                end: parseInt(timeMatch[2]),
+                start: parseInt(timeMatch[1], 10),
+                end: parseInt(timeMatch[2], 10),
                 taskName: task.taskName,
                 timeInfo: task.timeInfo
               };
