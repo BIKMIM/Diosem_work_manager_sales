@@ -14,6 +14,7 @@ export const WORKERS = [
   '조용준',
   '신지호',
   '고상원',
+  '김민우',
   '박정민',
   '박경식',
   '임영곤',
@@ -26,7 +27,6 @@ export const WORKERS = [
 
 // 분리 대상 기본값 (1:1 쌍)
 export const DEFAULT_SEPARATION_PAIRS = [
-  ['신재웅', '최이택'],
   ['조광호', '윤호진'],
   ['김태영', '권용덕']
 ];

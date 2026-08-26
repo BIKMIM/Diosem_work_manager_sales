@@ -17,6 +17,14 @@
   font-weight: 600;
 }
 
+.app-version {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 0.75rem;
+  font-weight: 400;
+  opacity: 0.85;
+}
+
 .btn-settings {
   position: absolute;
   right: 1.5rem;

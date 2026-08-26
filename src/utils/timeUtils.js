@@ -28,8 +28,9 @@ export const calculateOvertime = (workHours) => {
 export const formatHours = (hours) => {
   if (hours === 0) return '0시간';
 
-  const h = Math.floor(hours);
-  const m = Math.round((hours - h) * 60);
+  const totalMinutes = Math.round(hours * 60);
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
 
   if (m === 0) return `${h}시간`;
   return `${h}시간 ${m}분`;

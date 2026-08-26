@@ -21,13 +21,13 @@ export default function WorkInput({ value, onChange, onAnalyze, onClear }) {
     }
   };
 
-  const placeholder = `작업 데이터를 입력하세요.
+  const placeholder = `주간 작업 내용을 붙여넣으세요.
 
 예시:
-<6월 9일 월요일>
-연차: 홍길동 / 반차: 김철수
-■ XX 작업 (8시간 기준) - 이상엽, 신재웅, 최이택
-■ YY 작업 (9:00-19:00) - 조광호, 윤호진`;
+▣ 2026년 8월 1주
+<8월 3일 월요일> 연차: 박경식
+■10시(5시간) 작업 내용 / 이상엽, 신재웅
+■15시(5시간) 후속 작업 / 조광호, 윤호진`;
 
   return (
     <div className="work-input">

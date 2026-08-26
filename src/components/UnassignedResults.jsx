@@ -111,9 +111,18 @@ export default function UnassignedResults({ unassigned }) {
               </div>
 
               {/* === [몸통 영역] 공휴일이면 전 직원 휴무 표시, 아니면 미배정 표시 === */}
-              {day.isHoliday ? (
-                <div className="all-assigned-message">
-                  법정 공휴일 — 전 직원 휴무
+              {day.isHoliday && (day.assignedWorkers || []).length === 0 ? (
+                <div className="all-assigned-message">법정 공휴일 — 전 직원 휴무</div>
+              ) : day.isHoliday ? (
+                <div className="holiday-work-status">
+                  <div className="holiday-assigned">
+                    공휴일 작업 배정: {(day.assignedWorkers || []).join(', ')}
+                  </div>
+                  {actualUnassigned.length > 0 && (
+                    <div className="holiday-off">
+                      휴무 인원: {actualUnassigned.join(', ')} ({actualUnassigned.length}명)
+                    </div>
+                  )}
                 </div>
               ) : actualUnassigned.length === 0 ? (
                 <div className="all-assigned-message">

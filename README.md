@@ -1,16 +1,27 @@
-# React + Vite
+# Diosem 작업 배정 현황
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+영업팀과 기술팀이 같은 분석 엔진을 사용하는 공통 React/Vite 프로젝트입니다.
 
-Currently, two official plugins are available:
+## 실행과 검증
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```bash
+npm test
+npm run lint
+npm run dev:sales
+npm run dev:tech
+npm run build:sales
+npm run build:tech
+```
 
-## React Compiler
+- 영업팀 빌드: 분리 대상 설정과 위반 검사를 포함합니다.
+- 기술팀 빌드: 분리 관련 코드와 화면을 포함하지 않습니다.
+- 직원 명단은 `src/data/workers.js` 한 곳에서 관리합니다.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 배포
 
-## Expanding the ESLint configuration
+`main` 브랜치가 갱신되면 GitHub Actions가 두 빌드를 검사한 뒤 기존 주소에 배포합니다.
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- 영업팀: `https://bikmim.github.io/Diosem_work_manager_sales/`
+- 기술팀: `https://bikmim.github.io/Diosem_Workers/`
+
+기술팀 저장소에 배포하려면 이 저장소의 Actions secret에 `PAGES_DEPLOY_TOKEN`을 등록해야 합니다. 토큰은 `BIKMIM/Diosem_Workers` 저장소 Contents 쓰기 권한만 갖도록 최소 범위로 발급합니다.

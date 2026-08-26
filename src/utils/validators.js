@@ -42,6 +42,7 @@ export const checkUnassigned = (dailyData) => {
     unassignedByDay.push({
       date: `${day.month}월 ${day.day}일 ${day.dayOfWeek}`,
       workers: unassigned,
+      assignedWorkers: [...assignedWorkers],
       yearLeave: day.yearLeave,
       halfLeave: day.halfLeave,
       halfHalfLeave: day.halfHalfLeave || [],
@@ -122,7 +123,8 @@ export const checkDuplicateAssignments = (dailyData) => {
             date: dateStr,
             worker,
             tasks: tasks.map(t => `${t.taskName} (${t.timeInfo || '시간 미상'})`),
-            count: tasks.length
+            count: tasks.length,
+            reason: 'unknown-time'
           });
           continue;
         }
@@ -130,7 +132,7 @@ export const checkDuplicateAssignments = (dailyData) => {
         // 시간대 순으로 정렬
         timeRanges.sort((a, b) => a.start - b.start);
 
-        // 연속 작업인지 확인 (시간대가 겹치는지 체크)
+        // 시간대가 실제로 겹치는지 확인
         let hasOverlap = false;
         for (let i = 0; i < timeRanges.length - 1; i++) {
           const current = timeRanges[i];
@@ -142,11 +144,6 @@ export const checkDuplicateAssignments = (dailyData) => {
             break;
           }
 
-          // 너무 큰 간격이 있으면 (3시간 이상) 다른 작업으로 간주
-          if (next.start - current.end > 3) {
-            hasOverlap = true;
-            break;
-          }
         }
 
         // 시간대가 겹치거나 간격이 너무 크면 중복 배정 경고
@@ -155,7 +152,8 @@ export const checkDuplicateAssignments = (dailyData) => {
             date: dateStr,
             worker,
             tasks: tasks.map(t => `${t.taskName} (${t.timeInfo || '시간 미상'})`),
-            count: tasks.length
+            count: tasks.length,
+            reason: 'overlap'
           });
         }
       }

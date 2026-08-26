@@ -1,7 +1,8 @@
 // localStorage 키
 const STORAGE_KEYS = {
   SEPARATION_PAIRS: 'diosem_separation_pairs',
-  WORK_INPUT: 'diosem_work_input'
+  LEGACY_WORK_INPUT: 'diosem_work_input',
+  WORK_INPUT: (variant) => `diosem_work_input_${variant}`
 };
 
 // 분리 대상 쌍 저장
@@ -25,18 +26,25 @@ export const loadSeparationPairs = () => {
 };
 
 // 작업 입력 데이터 저장
-export const saveWorkInput = (text) => {
+export const saveWorkInput = (text, variant = 'sales') => {
   try {
-    localStorage.setItem(STORAGE_KEYS.WORK_INPUT, text);
+    localStorage.setItem(STORAGE_KEYS.WORK_INPUT(variant), text);
   } catch (error) {
     console.error('Failed to save work input:', error);
   }
 };
 
 // 작업 입력 데이터 불러오기
-export const loadWorkInput = () => {
+export const loadWorkInput = (variant = 'sales') => {
   try {
-    return localStorage.getItem(STORAGE_KEYS.WORK_INPUT) || '';
+    const variantValue = localStorage.getItem(STORAGE_KEYS.WORK_INPUT(variant));
+    if (variantValue !== null) return variantValue;
+
+    // 기존 영업팀 저장 내용은 최초 한 번 그대로 이어받는다.
+    if (variant === 'sales') {
+      return localStorage.getItem(STORAGE_KEYS.LEGACY_WORK_INPUT) || '';
+    }
+    return '';
   } catch (error) {
     console.error('Failed to load work input:', error);
     return '';

@@ -1,109 +1,167 @@
-import { parseDate, parseLeave, parseWorkLine } from './parser-helpers.js';
+import {
+  getExpectedDayOfWeek,
+  hasWorkerDelimiter,
+  parseDate,
+  parseLeave,
+  parseScheduleHeader,
+  parseWorkLine
+} from './parser-helpers.js';
 import { getHolidayName } from './holidays.js';
+
+const WORK_LINE_PATTERN = /^[■□▪▫●○◆★☆]/;
+const DATE_LINE_PATTERN = /^<\d{1,2}월\s*\d{1,2}일/;
+
+const formatDate = (day) => `${day.month}월 ${day.day}일 ${day.dayOfWeek}`;
+
+const mergeUnique = (target, additions) => {
+  additions.forEach(item => {
+    if (!target.includes(item)) target.push(item);
+  });
+};
+
+const addLeaveInfo = (day, line) => {
+  const leave = parseLeave(line);
+  mergeUnique(day.yearLeave, leave.yearLeave);
+  mergeUnique(day.halfLeave, leave.halfLeave);
+  mergeUnique(day.halfHalfLeave, leave.halfHalfLeave);
+  mergeUnique(day.education, leave.education);
+};
+
+const addTaskWarnings = (day, task) => {
+  const date = formatDate(day);
+
+  if (task.canceled) {
+    day.warnings.push({
+      type: 'canceled-task',
+      date,
+      message: `취소 표시가 있는 작업을 배정 및 잔업 계산에서 제외했습니다: ${task.taskName}`
+    });
+    return false;
+  }
+
+  if (task.unknownWorkers.length > 0) {
+    day.warnings.push({
+      type: 'unknown-worker',
+      date,
+      message: `명단에 없는 이름을 확인해주세요: ${task.unknownWorkers.join(', ')}`
+    });
+  }
+
+  if (!task.hasKnownDuration && task.workers.length > 0) {
+    day.warnings.push({
+      type: 'unknown-duration',
+      date,
+      message: `배정은 반영했지만 잔업 시간은 계산하지 않았습니다: ${task.taskName}`
+    });
+  }
+
+  return true;
+};
 
 // 전체 텍스트 파싱
 export const parseWorkData = (text) => {
-  const lines = text.split('\n');
+  const lines = text.split(/\r?\n/);
   const dailyData = [];
   let currentDay = null;
+  let scheduleContext = null;
 
   for (let i = 0; i < lines.length; i++) {
     const trimmed = lines[i].trim();
     if (!trimmed) continue;
 
-    // 날짜 라인 (부재 정보가 같은 줄에 있을 수 있음)
+    const parsedSchedule = parseScheduleHeader(trimmed);
+    if (parsedSchedule) {
+      scheduleContext = parsedSchedule;
+      continue;
+    }
+
     const dateInfo = parseDate(trimmed);
     if (dateInfo) {
-      const holidayName = getHolidayName(dateInfo.month, dateInfo.day, dateInfo.dayOfWeek);
+      const holidayName = getHolidayName(
+        dateInfo.month,
+        dateInfo.day,
+        dateInfo.dayOfWeek,
+        scheduleContext?.year
+      );
+
       currentDay = {
         ...dateInfo,
+        year: scheduleContext?.year || null,
+        weekKey: scheduleContext?.key || 'input-week',
+        weekLabel: scheduleContext?.label || '입력 주간',
         isHoliday: holidayName !== null,
         holidayName: holidayName || null,
         yearLeave: [],
         halfLeave: [],
         halfHalfLeave: [],
-        education: [], // 교육, 출장 등 (근무 간주)
-        tasks: []
+        education: [],
+        tasks: [],
+        warnings: []
       };
       dailyData.push(currentDay);
 
-      // 날짜 라인과 같은 줄에 부재 정보가 있는지 확인
-      // 콜론(:)이 있으면 부재 정보가 있다고 판단
-      if (trimmed.includes(':')) {
-        const { yearLeave, halfLeave, halfHalfLeave, education } = parseLeave(trimmed);
-        currentDay.yearLeave.push(...yearLeave);
-        currentDay.halfLeave.push(...halfLeave);
-        currentDay.halfHalfLeave.push(...halfHalfLeave);
-        currentDay.education.push(...education);
+      if (scheduleContext?.year) {
+        const expectedDayOfWeek = getExpectedDayOfWeek(
+          scheduleContext.year,
+          dateInfo.month,
+          dateInfo.day
+        );
+        if (expectedDayOfWeek && expectedDayOfWeek !== dateInfo.dayOfWeek) {
+          currentDay.warnings.push({
+            type: 'date-mismatch',
+            date: formatDate(currentDay),
+            message: `${scheduleContext.year}년 ${dateInfo.month}월 ${dateInfo.day}일은 ${expectedDayOfWeek}입니다. 입력된 요일을 확인해주세요.`
+          });
+        }
       }
+
+      addLeaveInfo(currentDay, trimmed);
       continue;
     }
 
     if (!currentDay) continue;
 
-    // 부재 라인 (별도 라인으로 나오는 경우)
-    // 콜론(:)이 있고 작업 기호로 시작하지 않으면 부재 라인으로 판단
-    if (trimmed.includes(':') && !trimmed.match(/^[■□▪▫●○◆★☆]/)) {
-      const { yearLeave, halfLeave, halfHalfLeave, education } = parseLeave(trimmed);
-      currentDay.yearLeave.push(...yearLeave);
-      currentDay.halfLeave.push(...halfLeave);
-      currentDay.halfHalfLeave.push(...halfHalfLeave);
-      currentDay.education.push(...education);
+    if (WORK_LINE_PATTERN.test(trimmed)) {
+      let fullWorkContent = trimmed;
+      let consumedUntil = i;
+
+      if (!hasWorkerDelimiter(fullWorkContent)) {
+        for (let nextIndex = i + 1; nextIndex < lines.length; nextIndex++) {
+          const nextLine = lines[nextIndex].trim();
+          if (WORK_LINE_PATTERN.test(nextLine) || DATE_LINE_PATTERN.test(nextLine)) break;
+
+          consumedUntil = nextIndex;
+          if (nextLine) fullWorkContent += ` ${nextLine}`;
+          if (hasWorkerDelimiter(fullWorkContent)) break;
+          if (nextIndex - i >= 8) break;
+        }
+      }
+
+      const task = parseWorkLine(fullWorkContent);
+      if (!task) {
+        currentDay.warnings.push({
+          type: 'unparsed-task',
+          date: formatDate(currentDay),
+          message: `작업자 구분('/' 또는 '작업인원:')을 찾지 못했습니다: ${trimmed.slice(0, 80)}`
+        });
+      } else if (addTaskWarnings(currentDay, task) && task.workers.length > 0) {
+        currentDay.tasks.push(task);
+      }
+
+      i = consumedUntil;
       continue;
     }
 
-    // 작업 라인 처리 (기존 HTML 프로그램의 다중 라인 처리 로직 적용)
-    if (trimmed.match(/^[■□▪▫●○◆★☆]/)) {
-      // / 가 있으면 완전한 작업 라인
-      if (trimmed.includes(' / ')) {
-        const task = parseWorkLine(trimmed);
-        if (task && task.workers.length > 0) {
-          currentDay.tasks.push(task);
-        }
-      } else {
-        // / 가 없으면 다음 줄과 합쳐야 할 수 있음 (특화PM 등)
-        // 현재 라인과 다음 몇 줄을 합쳐서 처리
-        let fullWorkContent = trimmed;
-        let nextLineIndex = i + 1;
-
-        // 다음 줄들을 확인하여 작업 내용의 일부인지 판단
-        while (nextLineIndex < lines.length) {
-          const nextLine = lines[nextLineIndex].trim();
-
-          // 다음 작업(기호로 시작) 또는 날짜 섹션을 만나면 중단
-          if (nextLine.match(/^[■□▪▫●○◆★☆]/) || nextLine.match(/^<\d{1,2}월\s*\d{1,2}일/)) {
-            break;
-          }
-
-          // 비어있지 않은 줄이면 작업 내용에 추가
-          if (nextLine.length > 0) {
-            fullWorkContent += ' ' + nextLine;
-          }
-
-          nextLineIndex++;
-
-          // 최대 5줄까지만 확인 (무한 루프 방지)
-          if (nextLineIndex - i > 5) {
-            break;
-          }
-        }
-
-        // 합쳐진 내용에 / 가 있으면 파싱
-        if (fullWorkContent.includes(' / ')) {
-          const task = parseWorkLine(fullWorkContent);
-          if (task && task.workers.length > 0) {
-            currentDay.tasks.push(task);
-          }
-          // 처리한 줄 수만큼 인덱스 이동
-          i = nextLineIndex - 1;
-        }
-      }
-    } else if (trimmed.includes(' / ')) {
-      // 기호 없이 / 만 있는 경우도 작업 라인으로 처리
-      const task = parseWorkLine('■ ' + trimmed);
-      if (task && task.workers.length > 0) {
+    if (hasWorkerDelimiter(trimmed)) {
+      const task = parseWorkLine(`■ ${trimmed}`);
+      if (task && addTaskWarnings(currentDay, task) && task.workers.length > 0) {
         currentDay.tasks.push(task);
       }
+      continue;
+    }
+
+    if (trimmed.includes(':')) {
+      addLeaveInfo(currentDay, trimmed);
     }
   }
 

@@ -3,10 +3,6 @@ import { formatHours } from '../utils/timeUtils';
 export default function OvertimeModal({ worker, data, onClose }) {
   if (!worker || !data) return null;
 
-  const totalActualWorkHours = data.baseWorkHours + data.totalOvertime;
-  const remainingHours = 52 - totalActualWorkHours;
-  const isOver52 = totalActualWorkHours > 52;
-
   // 연차/반차와 작업 내역을 날짜별로 병합하여 정렬
   const allEntries = [];
 
@@ -28,6 +24,7 @@ export default function OvertimeModal({ worker, data, onClose }) {
       workHours: detail.workHours,
       overtime: detail.overtime,
       isWeekend: detail.isWeekend,
+      isHoliday: detail.isHoliday,
       tasks: detail.tasks
     });
   });
@@ -46,7 +43,10 @@ export default function OvertimeModal({ worker, data, onClose }) {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={onClose}>
         <div className="modal-header">
-          <h3>{worker} 주간 잔업 상세 내역</h3>
+          <h3>
+            {worker} 주간 잔업 상세 내역
+            {data.weekLabel && <span className="modal-week-label">{data.weekLabel}</span>}
+          </h3>
           <button className="btn-close" onClick={onClose}>
             ×
           </button>
@@ -71,7 +71,7 @@ export default function OvertimeModal({ worker, data, onClose }) {
                     ) : (
                       <div className="entry-work">
                         <div className="task-type">
-                          - {entry.isWeekend ? '주말 작업' : '평일 잔업 (종료시간 기준)'}
+                          - {entry.isHoliday ? '공휴일 작업' : entry.isWeekend ? '주말 작업' : '평일 잔업'}
                           <span className="overtime-time-positive">: {formatHours(entry.overtime)}</span>
                         </div>
                         <div className="task-description">

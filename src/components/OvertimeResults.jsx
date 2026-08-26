@@ -6,16 +6,14 @@ export default function OvertimeResults({ overtimeData, onShowDetails }) {
     return null;
   }
 
-  // 잔업 시간이 있는 직원만 필터링 (0시간인 사람 제외)
-  // WORKERS 배열 순서대로 정렬
   const workersWithWork = Object.entries(overtimeData)
-    .filter(([_, data]) => data.totalOvertime > 0)
-    .sort((a, b) => {
-      // WORKERS 배열에서의 인덱스를 기준으로 정렬
-      const indexA = WORKERS.indexOf(a[0]);
-      const indexB = WORKERS.indexOf(b[0]);
-      return indexA - indexB;
-    });
+    .flatMap(([worker, data]) => Object.values(data.weeks || {})
+      .filter(week => week.totalOvertime > 0)
+      .map(week => ({ worker, data: week })))
+    .sort((a, b) => (
+      a.data.weekOrder - b.data.weekOrder ||
+      WORKERS.indexOf(a.worker) - WORKERS.indexOf(b.worker)
+    ));
 
   if (workersWithWork.length === 0) {
     return (
@@ -30,7 +28,7 @@ export default function OvertimeResults({ overtimeData, onShowDetails }) {
     <div className="results-section">
       <h2>주간 누적 잔업 시간</h2>
       <div className="overtime-list">
-        {workersWithWork.map(([worker, data]) => {
+        {workersWithWork.map(({ worker, data }) => {
           // 총 실제 근무시간 = 기본 근무시간 + 잔업시간
           const totalActualWorkHours = data.baseWorkHours + data.totalOvertime;
           const remainingHours = 52 - totalActualWorkHours;
@@ -38,11 +36,14 @@ export default function OvertimeResults({ overtimeData, onShowDetails }) {
 
           return (
             <div
-              key={worker}
+              key={`${worker}-${data.weekKey}`}
               className="overtime-item"
               onClick={() => onShowDetails(worker, data)}
             >
-              <div className="overtime-worker-name">{worker}:</div>
+              <div className="overtime-worker-name">
+                {worker}
+                <span className="overtime-week-label">{data.weekLabel}</span>
+              </div>
               <div className="overtime-info">
                 <span className="overtime-hours">{formatHours(data.totalOvertime)}</span>
                 {isOver52 ? (

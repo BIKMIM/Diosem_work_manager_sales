@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import './styles/base.css';
 import './styles/layout.css';
 import './styles/settings.css';
@@ -6,66 +6,60 @@ import './styles/work-input.css';
 import './styles/results.css';
 import './styles/modals.css';
 import './styles/responsive.css';
-import { DEFAULT_SEPARATION_PAIRS } from './data/workers';
 import {
-  saveSeparationPairs,
-  loadSeparationPairs,
   saveWorkInput,
   loadWorkInput
 } from './utils/storage';
 import { parseWorkData } from './utils/parser-core';
 import {
-  checkSeparationViolations,
   checkUnassigned,
   checkDuplicateAssignments,
   checkLeaveConflicts
 } from './utils/validators';
 import { calculatePersonalOvertime } from './utils/overtime-calculator';
-import Settings from './components/Settings';
 import WorkInput from './components/WorkInput';
-import ViolationResults from './components/ViolationResults';
 import UnassignedResults from './components/UnassignedResults';
 import OvertimeResults from './components/OvertimeResults';
 import OvertimeModal from './components/OvertimeModal';
 import DuplicateAssignmentResults from './components/DuplicateAssignmentResults';
 import LeaveConflictResults from './components/LeaveConflictResults';
+import AnalysisWarnings from './components/AnalysisWarnings';
 import ConfirmModal from './components/ConfirmModal';
 import AlertModal from './components/AlertModal';
+import {
+  APP_CONFIG,
+  analyzeVariant,
+  getInitialVariantState,
+  saveVariantState,
+  VariantResults,
+  VariantSettings
+} from '@variant';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('main'); // 'main' or 'settings'
-  const [separationPairs, setSeparationPairs] = useState([]);
-  const [workInput, setWorkInput] = useState('');
+  const [variantState, setVariantState] = useState(getInitialVariantState);
+  const [workInput, setWorkInput] = useState(() => loadWorkInput(APP_CONFIG.variant));
   const [violations, setViolations] = useState(null);
   const [unassigned, setUnassigned] = useState(null);
   const [overtimeData, setOvertimeData] = useState(null);
   const [duplicates, setDuplicates] = useState(null);
   const [leaveConflicts, setLeaveConflicts] = useState(null);
+  const [analysisWarnings, setAnalysisWarnings] = useState(null);
   const [modalWorker, setModalWorker] = useState(null);
   const [modalData, setModalData] = useState(null);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
 
-  // 초기 로드
-  useEffect(() => {
-    const savedPairs = loadSeparationPairs();
-    // 저장된 값이 없거나 빈 배열인 경우 기본값 사용
-    setSeparationPairs(savedPairs && savedPairs.length > 0 ? savedPairs : DEFAULT_SEPARATION_PAIRS);
-
-    const savedInput = loadWorkInput();
-    setWorkInput(savedInput);
-  }, []);
-
   // 분리 대상 변경 시 저장
-  const handleSeparationChange = (newPairs) => {
-    setSeparationPairs(newPairs);
-    saveSeparationPairs(newPairs);
+  const handleVariantStateChange = (newState) => {
+    setVariantState(newState);
+    saveVariantState(newState);
   };
 
   // 작업 입력 변경 시 저장
   const handleWorkInputChange = (value) => {
     setWorkInput(value);
-    saveWorkInput(value);
+    saveWorkInput(value, APP_CONFIG.variant);
   };
 
   // 초기화
@@ -75,12 +69,13 @@ function App() {
 
   const handleConfirmClear = () => {
     setWorkInput('');
-    saveWorkInput('');
+    saveWorkInput('', APP_CONFIG.variant);
     setViolations(null);
     setUnassigned(null);
     setOvertimeData(null);
     setDuplicates(null);
     setLeaveConflicts(null);
+    setAnalysisWarnings(null);
     setShowClearConfirm(false);
   };
 
@@ -98,33 +93,23 @@ function App() {
     try {
       const dailyData = parseWorkData(workInput);
 
-      // 디버깅: 파싱된 데이터 확인
-      console.log('=== 파싱된 데이터 ===');
-      console.log('dailyData:', JSON.stringify(dailyData, null, 2));
-
       if (dailyData.length === 0) {
         setAlertMessage('유효한 작업 데이터가 없습니다.');
         return;
       }
 
-      const violationResults = checkSeparationViolations(dailyData, separationPairs);
+      const violationResults = analyzeVariant(dailyData, variantState);
       const unassignedResults = checkUnassigned(dailyData);
       const overtimeResults = calculatePersonalOvertime(dailyData);
       const duplicateResults = checkDuplicateAssignments(dailyData);
       const leaveConflictResults = checkLeaveConflicts(dailyData);
-
-      console.log('=== 분석 결과 ===');
-      console.log('violations:', violationResults);
-      console.log('unassigned:', unassignedResults);
-      console.log('overtime:', overtimeResults);
-      console.log('duplicates:', duplicateResults);
-      console.log('leaveConflicts:', leaveConflictResults);
 
       setViolations(violationResults);
       setUnassigned(unassignedResults);
       setOvertimeData(overtimeResults);
       setDuplicates(duplicateResults);
       setLeaveConflicts(leaveConflictResults);
+      setAnalysisWarnings(dailyData.flatMap(day => day.warnings || []));
 
       // 결과로 스크롤
       setTimeout(() => {
@@ -151,16 +136,19 @@ function App() {
   };
 
   // 설정 페이지 표시
-  if (currentPage === 'settings') {
+  if (APP_CONFIG.enableSeparation && currentPage === 'settings') {
     return (
       <div className="app">
         <header className="app-header">
-          <h1>Diosem 작업 배정 현황 (영업팀)<span className="app-version">v1.1.0 · 2026-04-20</span></h1>
+          <h1>
+            Diosem 작업 배정 현황 ({APP_CONFIG.teamName})
+            <span className="app-version">v{APP_CONFIG.version} · {APP_CONFIG.releaseDate}</span>
+          </h1>
         </header>
         <main className="app-main">
-          <Settings
-            separationPairs={separationPairs}
-            onSeparationChange={handleSeparationChange}
+          <VariantSettings
+            variantState={variantState}
+            onVariantStateChange={handleVariantStateChange}
             onClose={() => setCurrentPage('main')}
           />
         </main>
@@ -172,10 +160,15 @@ function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>Diosem 작업 배정 현황 (영업팀)</h1>
-        <button className="btn-settings" onClick={() => setCurrentPage('settings')}>
-          ⚙️ 설정
-        </button>
+        <h1>
+          Diosem 작업 배정 현황 ({APP_CONFIG.teamName})
+          <span className="app-version">v{APP_CONFIG.version} · {APP_CONFIG.releaseDate}</span>
+        </h1>
+        {APP_CONFIG.enableSeparation && (
+          <button className="btn-settings" onClick={() => setCurrentPage('settings')}>
+            ⚙️ 설정
+          </button>
+        )}
       </header>
 
       <main className="app-main">
@@ -186,11 +179,12 @@ function App() {
           onClear={handleClear}
         />
 
-        {(violations !== null || unassigned !== null || overtimeData !== null || duplicates !== null || leaveConflicts !== null) && (
+        {(unassigned !== null || overtimeData !== null || duplicates !== null || leaveConflicts !== null) && (
           <div className="results-container">
+            <AnalysisWarnings warnings={analysisWarnings} />
             <LeaveConflictResults conflicts={leaveConflicts} />
             <DuplicateAssignmentResults duplicates={duplicates} />
-            <ViolationResults violations={violations} />
+            <VariantResults results={violations} />
             <UnassignedResults unassigned={unassigned} />
             <OvertimeResults
               overtimeData={overtimeData}
