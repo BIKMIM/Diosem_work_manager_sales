@@ -97,9 +97,30 @@ test('신규 다중 행 작업의 작업인원을 배정하고 확인 인원은 
   assert.equal(day.tasks.length, 1);
   assert.deepEqual(day.tasks[0].workers, ['최광섭', '신재웅', '신지호']);
   assert.equal(day.tasks[0].startTime, 10.5);
-  assert.equal(day.tasks[0].endTime, null);
+  assert.equal(day.tasks[0].endTime, 15.5);
+  assert.equal(day.tasks[0].workHours, 5);
+  assert.equal(day.tasks[0].usesDefaultDuration, true);
   assert.equal(day.warnings.filter(w => w.type === 'unknown-worker').length, 0);
-  assert.equal(day.warnings.filter(w => w.type === 'unknown-duration').length, 1);
+  assert.equal(day.warnings.filter(w => w.type === 'unknown-duration').length, 0);
+});
+
+test('작업자 명단이 있고 시간이 생략되면 기본 5시간으로 계산한다', () => {
+  const input = `▣ 2026년 8월 4주
+<8월 27일 목요일>
+■(재작업) 10시 정승훈TL M15X LAM 이설 / 이상엽, 신지호
+<8월 28일 금요일>
+■DB하이텍 / 최광섭, 임영곤, 고상원, 김은우`;
+
+  const [reworkDay, noClockDay] = parseWorkData(input);
+  assert.equal(reworkDay.tasks[0].workHours, 5);
+  assert.equal(reworkDay.tasks[0].startTime, 10);
+  assert.equal(reworkDay.tasks[0].endTime, 15);
+  assert.equal(reworkDay.tasks[0].timeInfo, '10시-15시 (기본 5시간 기준)');
+  assert.equal(noClockDay.tasks[0].workHours, 5);
+  assert.equal(noClockDay.tasks[0].startTime, null);
+  assert.equal(noClockDay.tasks[0].endTime, null);
+  assert.equal(noClockDay.tasks[0].timeInfo, '기본 5시간 기준');
+  assert.equal(reworkDay.warnings.length + noClockDay.warnings.length, 0);
 });
 
 test('특화PM 접두어와 시간·분 소요시간을 파싱한다', () => {

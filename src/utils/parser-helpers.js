@@ -3,6 +3,7 @@ import { WORKERS } from '../data/workers.js';
 const TITLE_PATTERN = /(프로|기정|차장|TL|부장님|팀장)$/;
 const WORK_SYMBOLS_PATTERN = /^[■□▪▫●○◆★☆\s]+/;
 const NON_WORKER_TOKENS = new Set(['안전', '확인', '취소', '작업취소']);
+export const DEFAULT_WORK_HOURS = 5;
 
 const toDecimalHour = (hour, minute = 0) => (
   parseInt(hour, 10) + (parseInt(minute || 0, 10) / 60)
@@ -182,6 +183,7 @@ const parseTimeInfo = (workContent) => {
       endTime,
       workHours,
       hasKnownDuration: true,
+      usesDefaultDuration: false,
       timeInfo: `${formatClockTime(startTime)}-${formatClockTime(endTime)} (${formatDuration(workHours)} 기준)`,
       matchIndex: rangeMatch.index,
       matchLength: rangeMatch[0].length + trailing.consumedLength
@@ -192,17 +194,17 @@ const parseTimeInfo = (workContent) => {
   if (startMatch) {
     const startTime = toDecimalHour(startMatch[1], startMatch[2]);
     const trailing = getTrailingDuration(workContent, startMatch.index + startMatch[0].length);
-    const workHours = trailing.duration;
-    const endTime = workHours === null ? null : startTime + workHours;
+    const usesDefaultDuration = trailing.duration === null;
+    const workHours = trailing.duration ?? DEFAULT_WORK_HOURS;
+    const endTime = startTime + workHours;
 
     return {
       startTime,
       endTime,
       workHours,
-      hasKnownDuration: workHours !== null,
-      timeInfo: endTime === null
-        ? `${formatClockTime(startTime)} 시작 (소요시간 미상)`
-        : `${formatClockTime(startTime)}-${formatClockTime(endTime)} (${formatDuration(workHours)} 기준)`,
+      hasKnownDuration: true,
+      usesDefaultDuration,
+      timeInfo: `${formatClockTime(startTime)}-${formatClockTime(endTime)} (${usesDefaultDuration ? '기본 ' : ''}${formatDuration(workHours)} 기준)`,
       matchIndex: startMatch.index,
       matchLength: startMatch[0].length + trailing.consumedLength
     };
@@ -216,6 +218,7 @@ const parseTimeInfo = (workContent) => {
       endTime: null,
       workHours,
       hasKnownDuration: true,
+      usesDefaultDuration: false,
       timeInfo: `${formatDuration(workHours)} 기준`,
       matchIndex: durationMatch.index,
       matchLength: durationMatch[0].length
@@ -225,9 +228,10 @@ const parseTimeInfo = (workContent) => {
   return {
     startTime: null,
     endTime: null,
-    workHours: null,
-    hasKnownDuration: false,
-    timeInfo: '시간 미상',
+    workHours: DEFAULT_WORK_HOURS,
+    hasKnownDuration: true,
+    usesDefaultDuration: true,
+    timeInfo: `기본 ${formatDuration(DEFAULT_WORK_HOURS)} 기준`,
     matchIndex: -1,
     matchLength: 0
   };
@@ -256,6 +260,7 @@ export const parseWorkLine = (line) => {
     endTime: time.endTime,
     workHours: time.workHours,
     hasKnownDuration: time.hasKnownDuration,
+    usesDefaultDuration: time.usesDefaultDuration,
     workers,
     unknownWorkers,
     unconfirmedWorkers,
